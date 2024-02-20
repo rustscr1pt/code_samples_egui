@@ -1,6 +1,5 @@
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender};
-use std::time::Duration;
 use mysql::{params, PooledConn};
 use mysql::prelude::Queryable;
 use tokio::sync::Mutex;

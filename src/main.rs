@@ -16,7 +16,6 @@ mod bottom_renderer;
 mod render_display_screen;
 
 fn establish_connection() -> PooledConn {
-    let url = r#"mysql://gen_user:U\3+)5,,bGwcsM@94.241.169.12/default_db"#;
     let pool = Pool::new(url).expect("Couldn't connect to a base");
     println!("Connection with MySQL pool is established!");
     return pool.get_conn().unwrap();
