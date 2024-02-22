@@ -1,8 +1,9 @@
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender};
+use itertools::Itertools;
 use mysql::{params, PooledConn};
 use mysql::prelude::Queryable;
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, MutexGuard};
 
 pub struct LogsBody {
     pub storage : Vec<String>,
@@ -29,13 +30,19 @@ pub struct SqlSender {
     sample : String,
     library_sample : String
 }
-
+#[derive(Debug, Clone, Eq, Hash, PartialEq)]
 pub struct DisplayStorage {
     pub language_type : String,
     pub sample_name : String,
     pub sample : String,
     pub library_sample : String,
     pub id : u16
+}
+
+pub struct FilteredStorage {
+    pub filtered_vector : Vec<String>,
+    pub filtered_sender : Sender<Vec<String>>,
+    pub filtered_receiver : Receiver<Vec<String>>
 }
 
 pub struct ConcreteStorage {
@@ -68,7 +75,9 @@ pub struct MainBody {
     pub display_position : DisplayPosition,
     pub sql_connection : Arc<Mutex<PooledConn>>,
     pub display_storage : StorageBody,
-    pub update_timer : TimerStorage
+    pub update_timer : TimerStorage,
+    pub filtered_storage : FilteredStorage,
+    pub filter_selector : String
 }
 
 pub fn new(connection : Arc<Mutex<PooledConn>>) -> MainBody {
@@ -76,6 +85,7 @@ pub fn new(connection : Arc<Mutex<PooledConn>>) -> MainBody {
     let (tx2, rx2) = std::sync::mpsc::channel();
     let (tx3, rx3) = std::sync::mpsc::channel();
     let (tx4, rx4) = std::sync::mpsc::channel();
+    let (tx5, rx5) = std::sync::mpsc::channel();
 
     return MainBody {
         logs_body: LogsBody {
@@ -105,6 +115,12 @@ pub fn new(connection : Arc<Mutex<PooledConn>>) -> MainBody {
             sender_active: tx4,
             receiver_active: rx4,
         },
+        filtered_storage: FilteredStorage {
+            filtered_vector: Vec::new(),
+            filtered_sender: tx5,
+            filtered_receiver: rx5,
+        },
+        filter_selector: "".to_string(),
     }
 }
 
@@ -169,7 +185,7 @@ pub fn send_data(connection : Arc<Mutex<PooledConn>>, sender : Sender<String>, l
     });
 }
 
-pub fn get_data(connection : Arc<Mutex<PooledConn>>, sender : Sender<String>, storage_sender : Sender<Vec<DisplayStorage>>) -> () {
+pub fn get_data(connection : Arc<Mutex<PooledConn>>, sender : Sender<String>, storage_sender : Sender<Vec<DisplayStorage>>, filtered_sender : Sender<Vec<String>>) -> () {
     tokio::spawn(async move {
         let mut connection = connection.lock().await;
         match connection.query_map("SELECT * FROM code_samples", |(id, language_type, sample_name, sample, library_sample)| {
@@ -182,13 +198,31 @@ pub fn get_data(connection : Arc<Mutex<PooledConn>>, sender : Sender<String>, st
             }
         }) {
             Ok(vec) => {
+                let cloned_filtered = vec
+                    .iter()
+                    .map(|value| value.language_type.to_string())
+                    .collect::<Vec<String>>()
+                    .iter()
+                    .cloned()
+                    .unique()
+                    .collect::<Vec<String>>();
+
                 let _ = sender.send("All samples from SQL were uploaded.".to_string());
                 let _ = storage_sender.send(vec);
+                let _ = filtered_sender.send(cloned_filtered);
             }
             Err(e) => {
                 let _ = sender.send(format!("$~ERROR! {}", e));
             }
         }
+    });
+}
+
+pub fn make_sortable_request(connection : Arc<Mutex<PooledConn>>, sender : Sender<String>, storage_sender : Sender<Vec<DisplayStorage>>) -> () {
+    tokio::spawn(async move {
+        let mut connection = connection.lock().await;
+
+        connection.query_map("")
     });
 }
 

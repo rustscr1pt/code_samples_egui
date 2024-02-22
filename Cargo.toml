@@ -10,3 +10,4 @@ tokio = { version = "1.35.1", features = ["full"] }
 mysql = "24.0.0"
 eframe = "0.25.0"
 futures = "0.3.30"
+itertools = "0.11.0"

@@ -38,11 +38,15 @@ impl App for MainBody {
 
         if let Ok(count) = self.update_timer.countdown_receiver.try_recv() {
             if self.update_timer.countdown == 0 {
-                get_data(Arc::clone(&self.sql_connection), self.logs_body.log_sender.clone(), self.display_storage.storage_sender.clone())
+                get_data(Arc::clone(&self.sql_connection), self.logs_body.log_sender.clone(), self.display_storage.storage_sender.clone(), self.filtered_storage.filtered_sender.clone())
             }
             else {
                 self.update_timer.countdown -= count
             }
+        }
+
+        if let Ok(filtered) = self.filtered_storage.filtered_receiver.try_recv() {
+            self.filtered_storage.filtered_vector = filtered;
         }
 
         if let Ok(vector) = self.display_storage.storage_receiver.try_recv() {

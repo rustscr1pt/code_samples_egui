@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use eframe::egui::{Align, Button, Color32, Label, Layout, RichText, ScrollArea, Ui};
+use eframe::egui::{Align, Button, Color32, ComboBox, Label, Layout, RichText, ScrollArea, Ui};
 use crate::Model::{DisplayPosition, MainBody, remove_element_sql};
 
 impl MainBody {
@@ -25,6 +25,21 @@ impl MainBody {
             _ => {
                 ui.vertical(|ui| {
                     ui.add_space(full_height * 0.05f32);
+                    ui.horizontal(|ui| {
+                        ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                            ui.add_space(full_width * 0.1f32);
+                            ComboBox::from_label("Language to filter")
+                                .selected_text(format!("{}", &self.filter_selector))
+                                .show_ui(ui, |ui| {
+                                    for elements in self.filtered_storage.filtered_vector.iter() {
+                                        if ui.selectable_value(&mut self.filter_selector, elements.to_string(), elements.to_string()).clicked() {
+                                            println!("{}", self.filter_selector);
+
+                                        }
+                                    }
+                                });
+                        })
+                    });
                     ScrollArea::vertical().max_width(full_width).max_height(full_height).show(ui, |ui| {
                         for (count, element) in self.display_storage.storage_vector.iter().enumerate() {
                             if count == 0 {

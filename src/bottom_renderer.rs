@@ -11,7 +11,7 @@ impl MainBody {
                 ui.add(Label::new(RichText::new("Logs").color(Color32::WHITE).size(16f32).monospace()));
                 ui.add_space(full_width * 0.5f32);
                 if ui.add_sized([full_width * 0.1f32, full_height * 0.04f32], Button::new(RichText::new("Display"))).clicked() {
-                    get_data(Arc::clone(&self.sql_connection), self.logs_body.log_sender.clone(), self.display_storage.storage_sender.clone());
+                    get_data(Arc::clone(&self.sql_connection), self.logs_body.log_sender.clone(), self.display_storage.storage_sender.clone(), self.filtered_storage.filtered_sender.clone());
                     self.display_position = DisplayPosition::Display;
                 };
                 ui.add_space(full_width * 0.035f32);
