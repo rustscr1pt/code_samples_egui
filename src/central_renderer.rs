@@ -20,7 +20,7 @@ impl MainBody {
                     ui.add_sized([full_width * 0.25f32, full_height * 0.04f32], eframe::egui::TextEdit::singleline(&mut self.user_input.sample_name))
                 });
                 ui.scope(|ui| {
-                    let mut style = ui.style_mut();
+                    let style = ui.style_mut();
                     style.visuals.widgets.hovered.weak_bg_fill = Color32::RED;
                     style.visuals.widgets.inactive.weak_bg_fill = Color32::BLACK;
                     ui.add_space(ui.available_width() * 0.1f32);
@@ -32,7 +32,7 @@ impl MainBody {
                     });
                 });
                 ui.scope(|ui| {
-                    let mut style = ui.style_mut();
+                    let style = ui.style_mut();
                     style.visuals.widgets.hovered.weak_bg_fill = Color32::GREEN;
                     style.visuals.widgets.inactive.weak_bg_fill = Color32::BLACK;
                     ui.add_space(ui.available_width() * 0.1f32);
@@ -90,7 +90,7 @@ impl MainBody {
                     ui.add_sized([full_width * 0.25f32, full_height * 0.04f32], eframe::egui::TextEdit::singleline(&mut self.user_input.sample_name))
                 });
                 ui.scope(|ui| {
-                    let mut style = ui.style_mut();
+                    let style = ui.style_mut();
                     style.visuals.widgets.hovered.weak_bg_fill = Color32::GREEN;
                     style.visuals.widgets.inactive.weak_bg_fill = Color32::BLACK;
                     ui.add_space(ui.available_width() * 0.1f32);

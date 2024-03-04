@@ -3,7 +3,7 @@ use std::sync::mpsc::{Receiver, Sender};
 use itertools::Itertools;
 use mysql::{params, PooledConn};
 use mysql::prelude::Queryable;
-use tokio::sync::{Mutex, MutexGuard};
+use tokio::sync::{Mutex};
 
 pub struct LogsBody {
     pub storage : Vec<String>,
@@ -43,14 +43,6 @@ pub struct FilteredStorage {
     pub filtered_vector : Vec<String>,
     pub filtered_sender : Sender<Vec<String>>,
     pub filtered_receiver : Receiver<Vec<String>>
-}
-
-pub struct ConcreteStorage {
-    pub language_type : String,
-    pub sample_name : String,
-    pub sample : String,
-    pub library_sample : String,
-    pub id : u16
 }
 
 pub struct StorageBody {
@@ -161,9 +153,9 @@ impl MainBody {
 pub fn send_data(connection : Arc<Mutex<PooledConn>>, sender : Sender<String>, language_name : String, sample_name : String, sample : String, library_sample : String) -> () {
     let work_vec : Vec<SqlSender> = vec![SqlSender {
         language_type: language_name,
-        sample_name: sample_name,
-        sample: sample,
-        library_sample: library_sample,
+        sample_name,
+        sample,
+        library_sample,
     }];
     tokio::spawn(async move {
         let mut connection = connection.lock().await;
@@ -190,15 +182,15 @@ pub fn get_data(connection : Arc<Mutex<PooledConn>>, sender : Sender<String>, st
         let mut connection = connection.lock().await;
         match connection.query_map("SELECT * FROM code_samples", |(id, language_type, sample_name, sample, library_sample)| {
             DisplayStorage {
-                language_type: language_type,
-                sample_name: sample_name,
-                sample: sample,
-                library_sample: library_sample,
-                id: id,
+                language_type,
+                sample_name,
+                sample,
+                library_sample,
+                id,
             }
         }) {
             Ok(vec) => {
-                let cloned_filtered = vec
+                let mut cloned_filtered = vec
                     .iter()
                     .map(|value| value.language_type.to_string())
                     .collect::<Vec<String>>()
@@ -206,6 +198,8 @@ pub fn get_data(connection : Arc<Mutex<PooledConn>>, sender : Sender<String>, st
                     .cloned()
                     .unique()
                     .collect::<Vec<String>>();
+
+                cloned_filtered.insert(0, "Nil".to_string());
 
                 let _ = sender.send("All samples from SQL were uploaded.".to_string());
                 let _ = storage_sender.send(vec);
@@ -218,11 +212,48 @@ pub fn get_data(connection : Arc<Mutex<PooledConn>>, sender : Sender<String>, st
     });
 }
 
-pub fn make_sortable_request(connection : Arc<Mutex<PooledConn>>, sender : Sender<String>, storage_sender : Sender<Vec<DisplayStorage>>) -> () {
+pub fn make_sortable_request(connection : Arc<Mutex<PooledConn>>, sender : Sender<String>, storage_sender : Sender<Vec<DisplayStorage>>, condition : String) -> () {
     tokio::spawn(async move {
         let mut connection = connection.lock().await;
 
-        connection.query_map("")
+        if condition == "Nil" {
+            match connection.query_map("SELECT * FROM code_samples", |(id, language_type, sample_name, sample, library_sample)| {
+                DisplayStorage {
+                    language_type,
+                    sample_name,
+                    sample,
+                    library_sample,
+                    id,
+                }
+            }) {
+                Ok(vec) => {
+                    let _ = sender.send("Filter request is successful".to_string());
+                    let _ = storage_sender.send(vec);
+                }
+                Err(e) => {
+                    let _ = sender.send(format!("$~ERROR! {}", e));
+                }
+            }
+        }
+        else {
+            match connection.query_map(format!(r#"SELECT * FROM code_samples WHERE language_type = "{}""#, condition), |(id, language_type, sample_name, sample, library_sample)| {
+                DisplayStorage {
+                    language_type,
+                    sample_name,
+                    sample,
+                    library_sample,
+                    id,
+                }
+            }) {
+                Ok(vec) => {
+                    let _ = sender.send("Filter request is successful".to_string());
+                    let _ = storage_sender.send(vec);
+                }
+                Err(e) => {
+                    let _ = sender.send(format!("$~ERROR! {}", e));
+                }
+            }
+        }
     });
 }
 
@@ -235,11 +266,11 @@ pub fn remove_element_sql(connection : Arc<Mutex<PooledConn>>, sender : Sender<S
         };
         match connection.query_map("SELECT * FROM code_samples", |(id, language_type, sample_name, sample, library_sample)| {
             DisplayStorage {
-                language_type: language_type,
-                sample_name: sample_name,
-                sample: sample,
-                library_sample: library_sample,
-                id: id,
+                language_type,
+                sample_name,
+                sample,
+                library_sample,
+                id,
             }
         }) {
             Ok(vec) => {

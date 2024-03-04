@@ -1,6 +1,6 @@
 use std::sync::Arc;
 use eframe::egui::{Align, Button, Color32, ComboBox, Label, Layout, RichText, ScrollArea, Ui};
-use crate::Model::{DisplayPosition, MainBody, remove_element_sql};
+use crate::Model::{DisplayPosition, MainBody, make_sortable_request, remove_element_sql};
 
 impl MainBody {
     pub fn render_display_screen(&mut self, ui : &mut Ui, full_width : f32, full_height : f32) -> () {
@@ -18,9 +18,6 @@ impl MainBody {
                         ui.add(Label::new(RichText::new(format!("Display would be updated in {} secs", self.update_timer.countdown)).color(Color32::WHITE).size(25f32).monospace()))
                     });
                 });
-                // if self.update_timer.countdown == 7 && !self.update_timer.active {
-                //     spawn_update_timer(self.update_timer.countdown_sender.clone(), self.update_timer.sender_active.clone())
-                // }
             },
             _ => {
                 ui.vertical(|ui| {
@@ -34,13 +31,13 @@ impl MainBody {
                                     for elements in self.filtered_storage.filtered_vector.iter() {
                                         if ui.selectable_value(&mut self.filter_selector, elements.to_string(), elements.to_string()).clicked() {
                                             println!("{}", self.filter_selector);
-
+                                            make_sortable_request(Arc::clone(&self.sql_connection), self.logs_body.log_sender.clone(), self.display_storage.storage_sender.clone(), elements.to_string())
                                         }
                                     }
                                 });
                         })
                     });
-                    ScrollArea::vertical().max_width(full_width).max_height(full_height).show(ui, |ui| {
+                    ScrollArea::vertical().max_width(full_width).max_height(full_height * 0.7f32).show(ui, |ui| {
                         for (count, element) in self.display_storage.storage_vector.iter().enumerate() {
                             if count == 0 {
                                 ui.separator();

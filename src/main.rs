@@ -32,19 +32,6 @@ impl App for MainBody {
             stroke: Default::default(),
         };
 
-        if let Ok(bool) = self.update_timer.receiver_active.try_recv() {
-            self.update_timer.active = bool
-        }
-
-        if let Ok(count) = self.update_timer.countdown_receiver.try_recv() {
-            if self.update_timer.countdown == 0 {
-                get_data(Arc::clone(&self.sql_connection), self.logs_body.log_sender.clone(), self.display_storage.storage_sender.clone(), self.filtered_storage.filtered_sender.clone())
-            }
-            else {
-                self.update_timer.countdown -= count
-            }
-        }
-
         if let Ok(filtered) = self.filtered_storage.filtered_receiver.try_recv() {
             self.filtered_storage.filtered_vector = filtered;
         }
@@ -63,11 +50,11 @@ impl App for MainBody {
 
         match self.display_position {
             DisplayPosition::Display => {
-                TopBottomPanel::new(TopBottomSide::Bottom, "logger").exact_height(full_height * 0.2f32).show(ctx, |ui| {
-                    self.render_bottom_panel(ui, full_width, full_height)
-                });
                 CentralPanel::default().frame(base).show(ctx, |ui| {
                     self.render_display_screen(ui, full_width, full_height);
+                });
+                TopBottomPanel::new(TopBottomSide::Bottom, "logger").exact_height(full_height * 0.2f32).show(ctx, |ui| {
+                    self.render_bottom_panel(ui, full_width, full_height)
                 });
             }
             DisplayPosition::Add => {
@@ -103,7 +90,7 @@ fn main() {
 
     let window = NativeOptions::default();
     eframe::run_native("Code Samples", window,
-                       Box::new(|cc|
+                       Box::new(|_|
                        Box::new(new(Arc::new(Mutex::new(establish_connection()))))
                        )).unwrap();
 }
